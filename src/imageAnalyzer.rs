@@ -6,7 +6,7 @@ use base64::Engine as _; // for .encode()
 use serde_json::json;
 use tokio::fs;
 
-pub async fn imageAnalyzer() -> Result<()> {
+pub async fn ai_request() -> Result<()> {
     // 1) Load API key from ~/.config/openai/openai.json
     let api_key = api::load_api_key().await?; // api::load... will load from api.rs
     let cfg = OpenAIConfig::new().with_api_key(api_key);
