@@ -5,7 +5,6 @@ use std::sync::{
 };
 use std::time::Duration;
 
-
 /// Run any future while showing a spinner on stderr.
 /// The spinner clears itself before returning.
 pub async fn with_spinner<F, T>(msg: &'static str, fut: F) -> T

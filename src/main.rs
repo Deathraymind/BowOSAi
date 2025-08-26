@@ -6,9 +6,6 @@ use base64::Engine as _; // for .encode()
 use serde_json::json;
 use tokio::fs;
 
-
-
-
 #[tokio::main]
 async fn main() -> Result<()> {
     // 1) Load API key from ~/.config/openai/openai.json
@@ -32,7 +29,7 @@ async fn main() -> Result<()> {
         "messages": [{
           "role": "user",
           "content": [
-            { "type": "text", "text": "please give the correct answer and a brief explanation:" },
+            { "type": "text", "text": "if the image is a question please give the correct answer and a brief explanation: if its of a page summerize it or anything else really" },
             { "type": "image_url", "image_url": { "url": data_url } }
           ]
         }]

@@ -28,4 +28,8 @@ pub async fn load_api_key() -> Result<String> {
         .with_context(|| format!("Invalid JSON in {}", path.display()))?;
     Ok(secrets.openai_api_key)
 }
+// // 1) Load API key from ~/.config/openai/openai.json
+//    let api_key = api::load_api_key().await?; // api::load... will load from api.rs
+//    let cfg = OpenAIConfig::new().with_api_key(api_key);
+//    let client = Client::with_config(cfg);
 
