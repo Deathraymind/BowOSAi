@@ -1,16 +1,9 @@
-use anyhow::{Context, Result};
-use async_openai::{config::OpenAIConfig, Client};
-use base64::Engine as _; // for .encode()
-use serde::Deserialize;
-use serde_json::json;
 use std::io::{self, Write};
-use std::path::PathBuf;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
 use std::time::Duration;
-use tokio::fs;
 
 
 /// Run any future while showing a spinner on stderr.
@@ -43,4 +36,8 @@ where
     let _ = handle.await;
     out
 }
+// use 
+// let resp: serde_json::Value =
+//        spinner::with_spinner("thinking…", client.chat().create_byot(req)).await?;
+// to call the spinning animation 
 

@@ -3,15 +3,7 @@ mod spinner;
 use anyhow::{Context, Result};
 use async_openai::{config::OpenAIConfig, Client};
 use base64::Engine as _; // for .encode()
-use serde::Deserialize;
 use serde_json::json;
-use std::io::{self, Write};
-use std::path::PathBuf;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
-use std::time::Duration;
 use tokio::fs;
 
 
