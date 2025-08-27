@@ -12,10 +12,13 @@ struct Args {
     /// Use clipboard input
     #[arg(short = 'c', long = "clipboard")]
     c: bool,
-
+    
     /// Use picture input
     #[arg(short = 'p', long = "picture")]
     p: bool,
+
+   #[arg(short = 'd', long = "directory", value_name = "DIR")]
+    d: String, 
 }
 
 #[tokio::main]
@@ -27,7 +30,7 @@ async fn main() -> Result<()> {
     }
 
     if args.p {
-        imageAnalyzer::ai_request().await?;
+        imageAnalyzer::ai_request(&args.d).await?; 
     }
 
     Ok(())

@@ -6,14 +6,13 @@ use base64::Engine as _; // for .encode()
 use serde_json::json;
 use tokio::fs;
 
-pub async fn ai_request() -> Result<()> {
+pub async fn ai_request(file_path: &str) -> Result<()> {
     // 1) Load API key from ~/.config/openai/openai.json
     let api_key = api::load_api_key().await?; // api::load... will load from api.rs
     let cfg = OpenAIConfig::new().with_api_key(api_key);
     let client = Client::with_config(cfg);
 
     // 2) Read image
-    let file_path = "/home/bowyn/Pictures/screenshots/temp_screenshot.png";
     let bytes = fs::read(file_path)
         .await
         .with_context(|| format!("Failed to read image at {}", file_path))?;
