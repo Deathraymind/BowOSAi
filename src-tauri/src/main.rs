@@ -1,79 +1,115 @@
-// src/main.rs
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use iced::widget::{button, column, scrollable, text, text_input};
+use iced::{Center, Element, Fill, Task};
 
-mod imageAnalyzer;
 mod api;
+#[allow(non_snake_case)]
+mod imageAnalyzer;
 
-use tauri::{Manager, Emitter};
-use clap::Parser;
-use anyhow::Result;
-
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    #[arg(short = 'c', long = "clipboard")]
-    c: bool,
-    #[arg(short = 'p', long = "picture")]
-    p: bool,
-    #[arg(short = 'd', long = "directory", value_name = "DIR", default_value = "")]
-    d: String,
+struct OpenAiGui {
+    image_path: String,
+    input: String,
+    response: String,
+    analyzing: bool,
 }
 
-#[tauri::command]
-async fn analyze_image(path: String) -> Result<String, String> {
-    imageAnalyzer::ai_request(&path)
-        .await
-        .map_err(|e| e.to_string())
+impl Default for OpenAiGui {
+    fn default() -> Self {
+        // Check for command-line arguments
+        let args: Vec<String> = std::env::args().collect();
+        let image_path = if args.len() > 1 {
+            println!("Image path from args: {}", args[1]);
+            args[1].clone()
+        } else {
+            String::new()
+        };
+
+        Self {
+            image_path,
+            input: String::new(),
+            response: String::new(),
+            analyzing: false,
+        }
+    }
 }
 
-fn main() {
-    // Parse CLI args
-    let args = Args::parse();
-    
-    println!("Args parsed: {:?}", args);
-    println!("Picture flag: {}", args.p);
-    println!("Directory: '{}'", args.d);
-    
-    tauri::Builder::default()
-        .setup(move |app| {
-            let window = app.get_webview_window("main").unwrap();
-            
-            // If image path provided via CLI, trigger analysis
-            if args.p && !args.d.is_empty() {
-                println!("Analyzing image: {}", args.d);
-                let path = args.d.clone();
-                let window_clone = window.clone();
-                
-                tauri::async_runtime::spawn(async move {
-                    println!("Starting analysis for: {}", path);
-                    match imageAnalyzer::ai_request(&path).await {
-                        Ok(result) => {
-                            println!("Analysis complete! Result length: {} chars", result.len());
-                            println!("Result preview: {}...", &result[..result.len().min(100)]);
-                            
-                            // Try to emit the event
-                            match window_clone.emit("analysis-complete", &result) {
-                                Ok(_) => println!("✓ Event emitted successfully"),
-                                Err(e) => eprintln!("✗ Failed to emit event: {}", e),
-                            }
-                        }
-                        Err(e) => {
-                            eprintln!("Error analyzing image: {}", e);
-                            match window_clone.emit("analysis-error", e.to_string()) {
-                                Ok(_) => println!("✓ Error event emitted successfully"),
-                                Err(e) => eprintln!("✗ Failed to emit error event: {}", e),
-                            }
-                        }
-                    }
-                });
-            } else {
-                println!("No image provided or flags not set correctly");
-                println!("Use: cargo tauri dev -- -- -p -d <image_path>");
+#[derive(Debug, Clone)]
+enum Message {
+    InputChanged(String),
+    ImagePathChanged(String),
+    SendPressed,
+    ResponseReceived(String),
+    ResponseError(String),
+}
+
+impl OpenAiGui {
+    fn update(&mut self, message: Message) -> Task<Message> {
+        match message {
+            Message::InputChanged(s) => {
+                self.input = s;
+                Task::none()
             }
-            
-            Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![analyze_image])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+            Message::ImagePathChanged(p) => {
+                self.image_path = p;
+                Task::none()
+            }
+            Message::SendPressed => {
+                let path = self.image_path.clone();
+                if path.is_empty() {
+                    return Task::future(async {
+                        Message::ResponseError("No image path provided".to_string())
+                    });
+                }
+                self.analyzing = true;
+                self.response = "Analyzing image...".to_string();
+                
+                Task::future(async move {
+                    match imageAnalyzer::ai_request(&path).await {
+                        Ok(resp) => Message::ResponseReceived(resp),
+                        Err(e) => Message::ResponseError(format!("Error: {}", e)),
+                    }
+                })
+            }
+            Message::ResponseReceived(resp) => {
+                self.response = resp;
+                self.analyzing = false;
+                Task::none()
+            }
+            Message::ResponseError(err) => {
+                self.response = err;
+                self.analyzing = false;
+                Task::none()
+            }
+        }
+    }
+
+    fn view(&self) -> Element<'_, Message> {
+        let image_input = text_input("Image path...", &self.image_path)
+            .on_input(Message::ImagePathChanged)
+            .padding(10)
+            .size(20);
+
+        let context_input = text_input("Optional text/context...", &self.input)
+            .on_input(Message::InputChanged)
+            .padding(10)
+            .size(20);
+
+        let send_button = if self.analyzing {
+            button("Analyzing...").padding(10)
+        } else {
+            button("Analyze").on_press(Message::SendPressed).padding(10)
+        };
+
+        let output = scrollable(column![text(&self.response)])
+            .height(Fill);
+
+        column![image_input, context_input, send_button, output]
+            .spacing(10)
+            .padding(20)
+            .align_x(Center)
+            .into()
+    }
+}
+
+pub fn main() -> iced::Result {
+    iced::run("OpenAI Image Analyzer", OpenAiGui::update, OpenAiGui::view)
 }
