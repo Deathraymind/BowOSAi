@@ -18,6 +18,13 @@
             pkgs.rust-bin.stable.latest.default   # <- rustc/cargo fmt/clippy at latest stable
             pkgs.pkg-config
             pkgs.openssl
+            # tauri build depenecies
+            pkgs.nodePackages.npm
+            pkgs.atk
+            pkgs.gdk-pixbuf
+            pkgs.cairo
+            pkgs.gtk3
+            pkgs.webkitgtk_4_1
           ];
         };
       });
