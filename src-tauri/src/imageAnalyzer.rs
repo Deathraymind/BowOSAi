@@ -1,29 +1,25 @@
-use crate::api; //imports the api features 
-use crate::spinner;
-use anyhow::{Context, Result};
-use async_openai::{config::OpenAIConfig, Client};
-use base64::Engine as _; // for .encode()
+use anyhow::{Result, Context};
+use async_openai::{Client, config::OpenAIConfig};
+use base64::Engine;
 use serde_json::json;
 use tokio::fs;
 
-pub async fn ai_request(file_path: &str) -> Result<()> {
-    // 1) Load API key from ~/.config/openai/openai.json
-    let api_key = api::load_api_key().await?; // api::load... will load from api.rs
+use crate::api;
+
+pub async fn ai_request(file_path: &str) -> Result<String> {
+    let api_key = api::load_api_key().await?;
     let cfg = OpenAIConfig::new().with_api_key(api_key);
     let client = Client::with_config(cfg);
 
-    // 2) Read image
     let bytes = fs::read(file_path)
         .await
         .with_context(|| format!("Failed to read image at {}", file_path))?;
 
-    // 3) Base64 → data URL
     let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
     let data_url = format!("data:image/png;base64,{}", b64);
 
-    // 4) BYOT/vision-style payload
     let req = json!({
-        "model": "gpt-5-mini",
+        "model": "gpt-4o-mini",
         "messages": [{
           "role": "user",
           "content": [
@@ -33,15 +29,14 @@ pub async fn ai_request(file_path: &str) -> Result<()> {
         }]
     });
 
-    // 5) Send & print, wrapped with spinner
-    let resp: serde_json::Value =
-        spinner::with_spinner("thinking…", client.chat().create_byot(req)).await?;
+    let resp: serde_json::Value = client.chat().create_byot(req).await?;
+
     let out = resp["choices"][0]["message"]["content"]
         .as_str()
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .to_string();
 
-    // Make sure the next print starts on a fresh line (spinner cleared already)
-    println!("{out}");
-    Ok(())
+
+    Ok(out)
 }
 

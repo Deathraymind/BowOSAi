@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #343541;
+            color: #ececf1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            flex: 1;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .message {
+            background: #444654;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            color: #8e8ea0;
+        }
+        
+        .loading.hidden {
+            display: none;
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #8e8ea0;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #5c2b29;
+            color: #f48771;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <span>Analyzing image...</span>
+        </div>
+        
+        <div id="result" class="message hidden"></div>
+        
+        <div id="error" class="message error hidden"></div>
+    </div>
+
+    <script>
+        const { listen } = window.__TAURI__.event;
+        
+        const loadingEl = document.getElementById('loading');
+        const resultEl = document.getElementById('result');
+        const errorEl = document.getElementById('error');
+        
+        // Listen for analysis complete
+        listen('analysis-complete', (event) => {
+            console.log('✓ Analysis complete');
+            loadingEl.classList.add('hidden');
+            errorEl.classList.add('hidden');
+            resultEl.textContent = event.payload;
+            resultEl.classList.remove('hidden');
+        });
+        
+        // Listen for analysis error
+        listen('analysis-error', (event) => {
+            console.log('✗ Analysis error');
+            loadingEl.classList.add('hidden');
+            resultEl.classList.add('hidden');
+            errorEl.textContent = 'Error: ' + event.payload;
+            errorEl.classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
